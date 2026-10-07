@@ -24,7 +24,12 @@ export function roleGuard(req: Request, res: Response, next: NextFunction) {
   if (userRoles.includes("admin") || requiredRoles.some((role) => userRoles.includes(role))) {
     return next();
   }
-  return res.status(403).json({ message: "Role permission denied" });
+  // 说明权限问题：需要哪些角色、当前用户是哪些角色
+  return res.status(403).json({
+    message: `Role permission denied: requires role [${requiredRoles.join(", ")}]`,
+    requiredRoles,
+    yourRoles: userRoles
+  });
 }
 
 export function permissionGuard(req: Request, res: Response, next: NextFunction) {
@@ -36,6 +41,9 @@ export function permissionGuard(req: Request, res: Response, next: NextFunction)
   if (req.user?.roles.includes("admin") || requiredPermissions.every((permission) => userPermissions.includes(permission))) {
     return next();
   }
-  return res.status(403).json({ message: "Permission denied" });
+  return res.status(403).json({
+    message: `Permission denied: requires permission [${requiredPermissions.join(", ")}]`,
+    requiredPermissions
+  });
 }
 

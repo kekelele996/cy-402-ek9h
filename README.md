@@ -8,18 +8,22 @@ docker compose up -d --build
 
 承岳律师案件管理系统（`cylawcase`）是面向律师事务所的案件、客户、文档、费用与审计日志一体化管理平台。
 
-默认演示账号：
+默认演示账号（密码均为 `Password123!`）：
 
 ```text
-admin@cylawcase.local / Password123!
+admin@cylawcase.local   管理员
+lawyer@cylawcase.local  律师
+finance@cylawcase.local 财务
 ```
 
 ## 功能列表
 
 - 客户管理：新建客户、编辑信息、客户检索、查看客户历史案件。
 - 案件管理：案件编号、类型、状态、受理/结案日期、客户、主办律师与协办律师全链路管理。
+- 结案对账：案件结案前自动按案件编号逐笔核对账单与到账流水，对得上才准结案；对不上时案件标记为「待核」，账单未收部分列成待收差额（写明哪几笔没收），财务多出的到账单独列出且不改写账单金额。
+- 到账流水：仅财务角色可登记、更正、作废（`payment:write` + `Roles("finance")`），其他角色写入返回 403 并说明所需角色。
 - 文档归档：按案件上传、查看、下载、删除文档，支持文件类型筛选和标题搜索。
-- 费用中心：创建账单、状态流转、本月应收/已收/待收汇总。
+- 费用中心：创建账单、批量账单写库（独立事务，失败只重试本所账单批次，不回滚财务到账流水）、状态流转、本月应收/已收/待收汇总。
 - 用户与认证：JWT 登录，bcrypt 密码加密，用户/律师信息贯穿案件分配。
 - RBAC 权限：数据库 roles/permissions/user_roles/role_permissions，后端 `Roles()` + `role.guard.ts`，前端 router 守卫 + `v-permission` 兼容层。
 - 操作日志：数据库 `audit_logs`，后端 `audit-log.interceptor.ts`，前端审计日志页面。
@@ -146,6 +150,15 @@ npm run dev
 - 前端枚举类型：`frontend/src/types/enums.ts`
 - 前端账单卡片：`frontend/src/components/common/BillingCard.tsx`
 - 前端费用中心：`frontend/src/pages/BillingPage.tsx`
+
+对账与到账流水（`Payment` / `Reconciliation`）：
+
+- 后端 Prisma：`backend/prisma/schema.prisma`（`payments`、`reconciliations` 表）
+- 后端枚举：`backend/src/common/enums/payment-status.enum.ts`、`backend/src/common/enums/reconciliation-status.enum.ts`
+- 后端业务服务：`backend/src/services/payment.service.ts`（到账流水，独立事务）、`backend/src/services/reconciliation.service.ts`（逐笔核对）
+- 结案闸门：`backend/src/services/case.service.ts` 的 `updateCaseStatus`
+- 批次重试：`backend/src/utils/retry.ts`（仅重试账单批次事务）
+- 前端展示：`frontend/src/pages/CaseDetailPage.tsx`（对账状态、待收差额、多出到账、到账流水登记）
 
 ## License
 

@@ -16,6 +16,10 @@ const createBillingSchema = z.object({
   invoiceInfo: z.record(z.unknown()).optional()
 });
 
+const createBillingBatchSchema = z.object({
+  items: z.array(createBillingSchema).min(1).max(100)
+});
+
 const statusSchema = z.object({
   status: billingStatusSchema
 });
@@ -35,6 +39,17 @@ export async function create(req: Request, res: Response) {
     ...input,
     invoiceInfo: input.invoiceInfo as Prisma.InputJsonValue | undefined
   });
+  res.status(201).json({ data });
+}
+
+export async function createBatch(req: Request, res: Response) {
+  const { items } = createBillingBatchSchema.parse(req.body);
+  const data = await billingService.createBillingBatch(
+    items.map((item) => ({
+      ...item,
+      invoiceInfo: item.invoiceInfo as Prisma.InputJsonValue | undefined
+    }))
+  );
   res.status(201).json({ data });
 }
 

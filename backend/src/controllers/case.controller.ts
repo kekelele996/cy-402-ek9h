@@ -2,10 +2,11 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 import type { CaseFilters } from "../services/case.service";
 import * as caseService from "../services/case.service";
+import * as reconciliationService from "../services/reconciliation.service";
 import { HttpError } from "../utils/http-error";
 
 const caseTypeSchema = z.enum(["civil", "criminal", "administrative", "commercial", "labor"]);
-const caseStatusSchema = z.enum(["filed", "investigating", "hearing", "closed", "archived"]);
+const caseStatusSchema = z.enum(["filed", "investigating", "hearing", "pending_review", "closed", "archived"]);
 
 const createCaseSchema = z.object({
   caseNo: z.string().min(3),
@@ -57,7 +58,16 @@ export async function create(req: Request, res: Response) {
 
 export async function updateStatus(req: Request, res: Response) {
   const { status } = statusSchema.parse(req.body);
-  const data = await caseService.updateCaseStatus(req.params.id, status);
+  const data = await caseService.updateCaseStatus(req.params.id, status, req.user?.id);
+  res.json({ data });
+}
+
+export async function reconcile(req: Request, res: Response) {
+  const existing = await caseService.getCase(req.params.id);
+  if (!existing) {
+    throw new HttpError(404, "Case not found");
+  }
+  const data = await reconciliationService.reconcileCase(req.params.id, req.user?.id);
   res.json({ data });
 }
 

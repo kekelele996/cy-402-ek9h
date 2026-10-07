@@ -11,6 +11,7 @@ enum RoleName {
   admin
   lawyer
   assistant
+  finance
 }
 
 enum CaseType {
@@ -25,6 +26,7 @@ enum CaseStatus {
   filed
   investigating
   hearing
+  pending_review
   closed
   archived
 }
@@ -50,6 +52,17 @@ enum BillingStatus {
   paid
   invoiced
   voided
+}
+
+enum PaymentStatus {
+  registered
+  corrected
+  voided
+}
+
+enum ReconciliationStatus {
+  matched
+  discrepancy
 }
 
 model Role {
@@ -106,6 +119,8 @@ model User {
   mainCases         Case[]             @relation("MainLawyerCases")
   collaboratedCases CaseCollaborator[]
   documents         Document[]
+  payments          Payment[]
+  reconciliations   Reconciliation[]
   auditLogs         AuditLog[]         @relation("AuditActor")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
@@ -145,6 +160,8 @@ model Case {
   collaborators  CaseCollaborator[]
   documents      Document[]
   billings       Billing[]
+  payments       Payment[]
+  reconciliation Reconciliation?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -193,6 +210,43 @@ model Billing {
 
   @@index([status, type, createdAt])
   @@map("billings")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  paymentNo      String        @unique
+  caseId         String
+  billNo         String?
+  amount         Decimal       @db.Decimal(12, 2)
+  receivedAt     DateTime
+  status         PaymentStatus @default(registered)
+  note           String?
+  registeredById String
+  case           Case          @relation(fields: [caseId], references: [id])
+  registeredBy   User          @relation(fields: [registeredById], references: [id])
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([caseId, receivedAt])
+  @@map("payments")
+}
+
+model Reconciliation {
+  id                String               @id @default(uuid())
+  caseId            String               @unique
+  status            ReconciliationStatus
+  billedTotal       Decimal              @db.Decimal(12, 2)
+  receivedTotal     Decimal              @db.Decimal(12, 2)
+  receivableDiff    Decimal              @db.Decimal(12, 2)
+  unmatchedBills    Json
+  unmatchedPayments Json
+  reconciledById    String?
+  case              Case                 @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  reconciledBy      User?                @relation(fields: [reconciledById], references: [id])
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@map("reconciliations")
 }
 
 model AuditLog {

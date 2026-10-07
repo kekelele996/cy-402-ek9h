@@ -8,6 +8,7 @@ import billingRoutes from "./routes/billing";
 import caseRoutes from "./routes/case";
 import clientRoutes from "./routes/client";
 import documentRoutes from "./routes/document";
+import paymentRoutes from "./routes/payment";
 import userRoutes from "./routes/user";
 import { errorHandler } from "./middlewares/error-handler.middleware";
 
@@ -36,6 +37,7 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/cases", caseRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/audit-logs", auditLogRoutes);
 
 app.use("/auth", authRoutes);
@@ -44,6 +46,7 @@ app.use("/clients", clientRoutes);
 app.use("/cases", caseRoutes);
 app.use("/documents", documentRoutes);
 app.use("/billing", billingRoutes);
+app.use("/payments", paymentRoutes);
 app.use("/audit-logs", auditLogRoutes);
 
 app.use(errorHandler);

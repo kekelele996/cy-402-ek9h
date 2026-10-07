@@ -19,6 +19,15 @@ router.post(
   auditLogInterceptor("create", "Billing"),
   asyncHandler(billingController.create)
 );
+router.post(
+  "/batch",
+  Roles("admin", "lawyer"),
+  roleGuard,
+  Permissions("billing:write"),
+  permissionGuard,
+  auditLogInterceptor("create_batch", "Billing"),
+  asyncHandler(billingController.createBatch)
+);
 router.patch(
   "/:id/status",
   Roles("admin", "lawyer"),

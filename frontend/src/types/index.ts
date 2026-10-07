@@ -1,4 +1,12 @@
-import type { BillingStatus, BillingType, CaseStatus, CaseType, DocumentType } from "./enums";
+import type {
+  BillingStatus,
+  BillingType,
+  CaseStatus,
+  CaseType,
+  DocumentType,
+  PaymentStatus,
+  ReconciliationStatus
+} from "./enums";
 import type { PermissionKey, RoleName } from "./permissions";
 
 export type ApiResponse<T> = {
@@ -47,6 +55,9 @@ export type CaseRecord = {
   collaborators?: Array<{ user: User }>;
   documents?: DocumentRecord[];
   billings?: Billing[];
+  payments?: Payment[];
+  reconciliation?: Reconciliation | null;
+  finance?: CaseFinance;
   createdAt: string;
   updatedAt: string;
 };
@@ -82,6 +93,59 @@ export type BillingSummary = {
   receivable: number;
   received: number;
   pending: number;
+};
+
+export type Payment = {
+  id: string;
+  paymentNo: string;
+  caseId: string;
+  billNo?: string | null;
+  amount: string | number;
+  receivedAt: string;
+  status: PaymentStatus;
+  note?: string | null;
+  registeredById: string;
+  case?: Pick<CaseRecord, "id" | "caseNo" | "title">;
+  registeredBy?: Pick<User, "id" | "name">;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ReconciliationUnmatchedBill = {
+  billNo: string;
+  type: BillingType;
+  amount: number;
+  received: number;
+  difference: number;
+};
+
+export type ReconciliationUnmatchedPayment = {
+  paymentNo: string | null;
+  billNo: string | null;
+  amount: number;
+  receivedAt: string | null;
+  reason: "no_bill_reference" | "bill_not_found" | "excess_over_bill";
+};
+
+export type Reconciliation = {
+  id: string;
+  caseId: string;
+  status: ReconciliationStatus;
+  billedTotal: string | number;
+  receivedTotal: string | number;
+  receivableDiff: string | number;
+  unmatchedBills: ReconciliationUnmatchedBill[];
+  unmatchedPayments: ReconciliationUnmatchedPayment[];
+  reconciledById?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CaseFinance = {
+  billedTotal: number;
+  receivedTotal: number;
+  receivableDiff: number;
+  reconciliationStatus: ReconciliationStatus | "unreconciled";
 };
 
 export type AuditLog = {

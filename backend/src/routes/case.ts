@@ -28,6 +28,15 @@ router.patch(
   auditLogInterceptor("status_change", "Case"),
   asyncHandler(caseController.updateStatus)
 );
+router.post(
+  "/:id/reconcile",
+  Roles("admin", "lawyer"),
+  roleGuard,
+  Permissions("case:write"),
+  permissionGuard,
+  auditLogInterceptor("reconcile", "Case"),
+  asyncHandler(caseController.reconcile)
+);
 router.patch(
   "/:id/assign",
   Roles("admin", "lawyer"),

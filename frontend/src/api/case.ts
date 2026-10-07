@@ -1,5 +1,5 @@
 import { request } from "./request";
-import type { ApiResponse, CaseRecord } from "../types";
+import type { ApiResponse, CaseRecord, Reconciliation } from "../types";
 import type { CaseStatus, CaseType } from "../types/enums";
 
 export type CaseQuery = {
@@ -27,6 +27,11 @@ export async function createCase(payload: Partial<CaseRecord> & { collaboratorId
 
 export async function updateCaseStatus(id: string, status: CaseStatus) {
   const { data } = await request.patch<ApiResponse<CaseRecord>>(`/cases/${id}/status`, { status });
+  return data.data;
+}
+
+export async function reconcileCase(id: string) {
+  const { data } = await request.post<ApiResponse<Reconciliation>>(`/cases/${id}/reconcile`);
   return data.data;
 }
 

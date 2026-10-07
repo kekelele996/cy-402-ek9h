@@ -12,6 +12,8 @@ const permissions = [
   ["document:write", "上传和删除文档"],
   ["billing:read", "查看账单"],
   ["billing:write", "创建和更新账单"],
+  ["payment:read", "查看到账流水"],
+  ["payment:write", "登记和更正到账流水"],
   ["user:read", "查看用户"],
   ["audit:read", "查看审计日志"],
   ["auth:manage", "管理用户和权限"]
@@ -28,9 +30,26 @@ const rolePermissions = {
     "document:write",
     "billing:read",
     "billing:write",
+    "payment:read",
     "user:read"
   ],
-  assistant: ["case:read", "client:read", "document:read", "document:write", "billing:read", "user:read"]
+  assistant: [
+    "case:read",
+    "client:read",
+    "document:read",
+    "document:write",
+    "billing:read",
+    "payment:read",
+    "user:read"
+  ],
+  finance: ["case:read", "client:read", "billing:read", "payment:read", "payment:write", "user:read"]
+};
+
+const roleDisplayNames = {
+  admin: "管理员",
+  lawyer: "律师",
+  assistant: "助理",
+  finance: "财务"
 };
 
 async function main() {
@@ -44,13 +63,13 @@ async function main() {
   }
 
   const roleRows = {};
-  for (const role of ["admin", "lawyer", "assistant"]) {
+  for (const role of ["admin", "lawyer", "assistant", "finance"]) {
     roleRows[role] = await prisma.role.upsert({
       where: { name: role },
-      update: { displayName: role === "admin" ? "管理员" : role === "lawyer" ? "律师" : "助理" },
+      update: { displayName: roleDisplayNames[role] },
       create: {
         name: role,
-        displayName: role === "admin" ? "管理员" : role === "lawyer" ? "律师" : "助理"
+        displayName: roleDisplayNames[role]
       }
     });
     for (const permissionKey of rolePermissions[role]) {
@@ -110,11 +129,25 @@ async function main() {
       passwordHash
     }
   });
+  const finance = await prisma.user.upsert({
+    where: { email: "finance@cylawcase.local" },
+    update: { name: "沈砚秋", primaryRole: "finance" },
+    create: {
+      name: "沈砚秋",
+      primaryRole: "finance",
+      licenseNo: null,
+      email: "finance@cylawcase.local",
+      phone: "13800000004",
+      avatarUrl: "",
+      passwordHash
+    }
+  });
 
   for (const [user, role] of [
     [admin, "admin"],
     [lawyer, "lawyer"],
-    [assistant, "assistant"]
+    [assistant, "assistant"],
+    [finance, "finance"]
   ]) {
     await prisma.userRole.upsert({
       where: { userId_roleId: { userId: user.id, roleId: roleRows[role].id } },
@@ -228,6 +261,21 @@ async function main() {
       caseId: caseB.id,
       clientId: clientB.id,
       invoiceInfo: { title: "顾清远" }
+    }
+  });
+
+  // 财务登记的到账流水：与 BILL-2026-0001 逐笔对应，演示案件可平账结案
+  await prisma.payment.upsert({
+    where: { paymentNo: "PAY-2026-0001" },
+    update: {},
+    create: {
+      paymentNo: "PAY-2026-0001",
+      caseId: caseA.id,
+      billNo: "BILL-2026-0001",
+      amount: "50000",
+      receivedAt: new Date("2026-06-10T02:30:00.000Z"),
+      note: "澄石贸易律师费银行转账",
+      registeredById: finance.id
     }
   });
 }

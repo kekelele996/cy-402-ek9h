@@ -1,4 +1,4 @@
-export type RoleName = "admin" | "lawyer" | "assistant";
+export type RoleName = "admin" | "lawyer" | "assistant" | "finance";
 
 export type PermissionKey =
   | "case:read"
@@ -9,6 +9,8 @@ export type PermissionKey =
   | "document:write"
   | "billing:read"
   | "billing:write"
+  | "payment:read"
+  | "payment:write"
   | "user:read"
   | "audit:read"
   | "auth:manage";
@@ -23,6 +25,8 @@ export const ROLE_PERMISSIONS: Record<RoleName, PermissionKey[]> = {
     "document:write",
     "billing:read",
     "billing:write",
+    "payment:read",
+    "payment:write",
     "user:read",
     "audit:read",
     "auth:manage"
@@ -36,8 +40,17 @@ export const ROLE_PERMISSIONS: Record<RoleName, PermissionKey[]> = {
     "document:write",
     "billing:read",
     "billing:write",
+    "payment:read",
     "user:read"
   ],
-  assistant: ["case:read", "client:read", "document:read", "document:write", "billing:read", "user:read"]
+  assistant: [
+    "case:read",
+    "client:read",
+    "document:read",
+    "document:write",
+    "billing:read",
+    "payment:read",
+    "user:read"
+  ],
+  finance: ["case:read", "client:read", "billing:read", "payment:read", "payment:write", "user:read"]
 };
-
