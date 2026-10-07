@@ -3,6 +3,7 @@ export type CaseStatus = "filed" | "investigating" | "hearing" | "closed" | "arc
 export type DocumentType = "complaint" | "defense" | "evidence" | "judgment" | "contract" | "other";
 export type BillingType = "attorney_fee" | "court_fee" | "travel_fee" | "other";
 export type BillingStatus = "pending" | "paid" | "invoiced" | "voided";
+export type ReconciliationStatus = "unreconciled" | "matched" | "pending_check";
 
 export const CaseTypeLabels: Record<CaseType, string> = {
   civil: "民事",
@@ -41,5 +42,11 @@ export const BillingStatusLabels: Record<BillingStatus, string> = {
   paid: "已支付",
   invoiced: "已开票",
   voided: "已作废"
+};
+
+export const ReconciliationStatusLabels: Record<ReconciliationStatus, string> = {
+  unreconciled: "未对账",
+  matched: "对账相符",
+  pending_check: "待核"
 };
 

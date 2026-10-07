@@ -11,6 +11,13 @@ enum RoleName {
   admin
   lawyer
   assistant
+  finance
+}
+
+enum ReconciliationStatus {
+  unreconciled
+  matched
+  pending_check
 }
 
 enum CaseType {
@@ -107,6 +114,8 @@ model User {
   collaboratedCases CaseCollaborator[]
   documents         Document[]
   auditLogs         AuditLog[]         @relation("AuditActor")
+  recordedReceipts  PaymentReceipt[]   @relation("ReceiptRecorder")
+  correctedReceipts PaymentReceipt[]   @relation("ReceiptCorrector")
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
@@ -130,23 +139,27 @@ model Client {
 }
 
 model Case {
-  id             String             @id @default(uuid())
-  caseNo         String             @unique
-  title          String
-  type           CaseType
-  status         CaseStatus         @default(filed)
-  acceptedAt     DateTime
-  closedAt       DateTime?
-  summary        String
-  clientId       String
-  mainLawyerId   String
-  client         Client             @relation(fields: [clientId], references: [id])
-  mainLawyer     User               @relation("MainLawyerCases", fields: [mainLawyerId], references: [id])
-  collaborators  CaseCollaborator[]
-  documents      Document[]
-  billings       Billing[]
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
+  id                   String               @id @default(uuid())
+  caseNo               String               @unique
+  title                String
+  type                 CaseType
+  status               CaseStatus           @default(filed)
+  acceptedAt           DateTime
+  closedAt             DateTime?
+  summary              String
+  clientId             String
+  mainLawyerId         String
+  client               Client               @relation(fields: [clientId], references: [id])
+  mainLawyer           User                 @relation("MainLawyerCases", fields: [mainLawyerId], references: [id])
+  collaborators        CaseCollaborator[]
+  documents            Document[]
+  billings             Billing[]
+  receipts             PaymentReceipt[]
+  reconciliations      Reconciliation[]
+  reconciliationStatus ReconciliationStatus @default(unreconciled)
+  pendingNote          String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
   @@index([status, type, acceptedAt])
   @@map("cases")
@@ -195,6 +208,58 @@ model Billing {
   @@map("billings")
 }
 
+/// 财务室登记的到账流水，仅财务角色可写入/更正，与账单(Billing)分别归属两套账。
+model PaymentReceipt {
+  id            String   @id @default(uuid())
+  receiptNo     String   @unique
+  amount        Decimal  @db.Decimal(12, 2)
+  receivedAt    DateTime
+  payerName     String?
+  payChannel    String?
+  remark        String?
+  /// 收款归属案件；旧流水或暂挂流水可为空（对账时视为无法认领，不属于任何案件）
+  caseId        String?
+  case          Case?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  recordedById  String
+  recordedBy    User     @relation("ReceiptRecorder", fields: [recordedById], references: [id])
+  correctedById String?
+  correctedBy   User?    @relation("ReceiptCorrector", fields: [correctedById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([caseId, receivedAt])
+  @@map("payment_receipts")
+}
+
+/// 结案前的对账记录：按案件逐笔核对账单与到账流水。
+model Reconciliation {
+  id                String               @id @default(uuid())
+  caseId            String
+  status            ReconciliationStatus
+  /// 账单总金额
+  billingTotal      Decimal              @db.Decimal(12, 2)
+  /// 到账流水总金额
+  receiptTotal      Decimal              @db.Decimal(12, 2)
+  /// 待收差额（账单多于到账的部分）
+  shortfallAmount   Decimal              @db.Decimal(12, 2)
+  /// 财务多出的金额（到账多于账单的部分），单独列示，不回写账单
+  surplusAmount     Decimal              @db.Decimal(12, 2)
+  /// 账单多出的逐笔：[{billNo, amount, type}]
+  unmatchedBillings Json
+  /// 财务多出的逐笔：[{receiptNo, amount, receivedAt}]
+  unmatchedReceipts Json
+  /// 逐笔命中的配对（仅核对结果留痕，不耦合两套账）：[{billNo, receiptNo, amount}]
+  matchedPairs      Json                 @default("[]")
+  matchedCount      Int                  @default(0)
+  note              String?
+  operatedById      String
+  operatedAt        DateTime             @default(now())
+  case              Case                 @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, operatedAt])
+  @@map("reconciliations")
+}
+
 model AuditLog {
   id           String   @id @default(uuid())
   actorId      String?
@@ -209,4 +274,3 @@ model AuditLog {
   @@index([targetEntity, createdAt])
   @@map("audit_logs")
 }
-

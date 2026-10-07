@@ -12,14 +12,17 @@ docker compose up -d --build
 
 ```text
 admin@cylawcase.local / Password123!
+finance@cylawcase.local / Password123!   # 财务角色：登记/更正到账流水、参与结案对账
 ```
 
 ## 功能列表
 
 - 客户管理：新建客户、编辑信息、客户检索、查看客户历史案件。
 - 案件管理：案件编号、类型、状态、受理/结案日期、客户、主办律师与协办律师全链路管理。
+- 结案对账：开庭转结案前，按案件编号把办案端账单与财务室到账流水逐笔核对；对得上才准结案，对不上时案件标为“待核”，列明未收账单（待收差额）与财务多出流水（单独列示，不改写账单）。
+- 到账流水：财务角色专属登记/更正（`receipt:write` + 财务角色双重校验），办案律师越权写入返回 403；账单与到账分库分表，账单批次重试不回滚财务到账。
 - 文档归档：按案件上传、查看、下载、删除文档，支持文件类型筛选和标题搜索。
-- 费用中心：创建账单、状态流转、本月应收/已收/待收汇总。
+- 费用中心：创建账单（含批量写库、仅重试本批）、状态流转、本月应收（账单）/已收（财务到账流水）/待收汇总。
 - 用户与认证：JWT 登录，bcrypt 密码加密，用户/律师信息贯穿案件分配。
 - RBAC 权限：数据库 roles/permissions/user_roles/role_permissions，后端 `Roles()` + `role.guard.ts`，前端 router 守卫 + `v-permission` 兼容层。
 - 操作日志：数据库 `audit_logs`，后端 `audit-log.interceptor.ts`，前端审计日志页面。
@@ -146,6 +149,16 @@ npm run dev
 - 前端枚举类型：`frontend/src/types/enums.ts`
 - 前端账单卡片：`frontend/src/components/common/BillingCard.tsx`
 - 前端费用中心：`frontend/src/pages/BillingPage.tsx`
+
+`ReconciliationStatus`（`unreconciled` 未对账 / `matched` 对账相符 / `pending_check` 待核）：
+
+- 后端 Prisma：`backend/prisma/schema.prisma`（案件 `reconciliationStatus` 字段 + `reconciliations` 表 + `payment_receipts` 到账流水表）
+- 后端枚举：`backend/src/common/enums/reconciliation-status.enum.ts`
+- 后端核心服务：`backend/src/services/reconciliation.service.ts`
+- 结案拦截：`backend/src/services/case.service.ts` 的 `updateCaseStatus`
+- 前端枚举类型：`frontend/src/types/enums.ts`
+- 前端对账面板：`frontend/src/components/common/ReconciliationPanel.tsx`
+- 前端案件详情：`frontend/src/pages/CaseDetailPage.tsx`
 
 ## License
 

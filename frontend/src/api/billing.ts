@@ -18,6 +18,12 @@ export async function createBilling(payload: Partial<Billing>) {
   return data.data;
 }
 
+/** 本所账单批量写库；后端失败时只重试本批，不影响财务到账流水。 */
+export async function createBillingBatch(items: Array<Partial<Billing>>) {
+  const { data } = await request.post<ApiResponse<Billing[]>>("/billing/batch", { items });
+  return data.data;
+}
+
 export async function updateBillingStatus(id: string, status: BillingStatus) {
   const { data } = await request.patch<ApiResponse<Billing>>(`/billing/${id}/status`, { status });
   return data.data;

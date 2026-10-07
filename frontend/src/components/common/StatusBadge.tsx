@@ -1,6 +1,10 @@
 import { Tag } from "antd";
-import { BillingStatusLabels, CaseStatusLabels } from "../../types/enums";
-import type { BillingStatus, CaseStatus } from "../../types/enums";
+import {
+  BillingStatusLabels,
+  CaseStatusLabels,
+  ReconciliationStatusLabels
+} from "../../types/enums";
+import type { BillingStatus, CaseStatus, ReconciliationStatus } from "../../types/enums";
 
 const colorMap: Record<string, string> = {
   filed: "gold",
@@ -11,11 +15,21 @@ const colorMap: Record<string, string> = {
   pending: "orange",
   paid: "green",
   invoiced: "blue",
-  voided: "default"
+  voided: "default",
+  unreconciled: "default",
+  matched: "green",
+  pending_check: "red"
 };
 
-export function StatusBadge({ status }: { status: CaseStatus | BillingStatus }) {
-  const labels: Record<string, string> = { ...CaseStatusLabels, ...BillingStatusLabels };
+export function StatusBadge({
+  status
+}: {
+  status: CaseStatus | BillingStatus | ReconciliationStatus;
+}) {
+  const labels: Record<string, string> = {
+    ...CaseStatusLabels,
+    ...BillingStatusLabels,
+    ...ReconciliationStatusLabels
+  };
   return <Tag color={colorMap[status]}>{labels[status] ?? status}</Tag>;
 }
-

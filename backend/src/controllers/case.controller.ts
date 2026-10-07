@@ -57,7 +57,7 @@ export async function create(req: Request, res: Response) {
 
 export async function updateStatus(req: Request, res: Response) {
   const { status } = statusSchema.parse(req.body);
-  const data = await caseService.updateCaseStatus(req.params.id, status);
+  const data = await caseService.updateCaseStatus(req.params.id, status, req.user!.id);
   res.json({ data });
 }
 

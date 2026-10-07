@@ -37,7 +37,12 @@ export function CasesPage() {
         render: (value, record) => <Link to={`/cases/${record.id}`}>{value}</Link>
       },
       { title: "类型", dataIndex: "type", render: (value) => CaseTypeLabels[value as CaseRecord["type"]] },
-      { title: "状态", dataIndex: "status", render: (value) => <StatusBadge status={value} /> },
+      { title: "案件状态", dataIndex: "status", render: (value) => <StatusBadge status={value} /> },
+      {
+        title: "对账状态",
+        dataIndex: "reconciliationStatus",
+        render: (value) => <StatusBadge status={(value as CaseRecord["reconciliationStatus"]) ?? "unreconciled"} />
+      },
       { title: "客户", dataIndex: ["client", "name"] },
       { title: "主办律师", dataIndex: ["mainLawyer", "name"] },
       { title: "受理日期", dataIndex: "acceptedAt", render: formatDate }
