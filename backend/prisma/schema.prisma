@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  admin
+  lawyer
+  assistant
+}
+
+enum CaseType {
+  civil
+  criminal
+  administrative
+  commercial
+  labor
+}
+
+enum CaseStatus {
+  filed
+  investigating
+  hearing
+  closed
+  archived
+}
+
+enum DocumentType {
+  complaint
+  defense
+  evidence
+  judgment
+  contract
+  other
+}
+
+enum BillingType {
+  attorney_fee
+  court_fee
+  travel_fee
+  other
+}
+
+enum BillingStatus {
+  pending
+  paid
+  invoiced
+  voided
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        RoleName         @unique
+  displayName String
+  users       UserRole[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  key         String           @unique
+  description String
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id                String             @id @default(uuid())
+  name              String
+  primaryRole       RoleName           @default(lawyer)
+  licenseNo         String?
+  email             String             @unique
+  phone             String?
+  avatarUrl         String?
+  passwordHash      String
+  roles             UserRole[]
+  mainCases         Case[]             @relation("MainLawyerCases")
+  collaboratedCases CaseCollaborator[]
+  documents         Document[]
+  auditLogs         AuditLog[]         @relation("AuditActor")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@map("users")
+}
+
+model Client {
+  id         String    @id @default(uuid())
+  name       String
+  identityNo String    @unique
+  phone      String
+  email      String?
+  address    String?
+  note       String?
+  cases      Case[]
+  billings   Billing[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("clients")
+}
+
+model Case {
+  id             String             @id @default(uuid())
+  caseNo         String             @unique
+  title          String
+  type           CaseType
+  status         CaseStatus         @default(filed)
+  acceptedAt     DateTime
+  closedAt       DateTime?
+  summary        String
+  clientId       String
+  mainLawyerId   String
+  client         Client             @relation(fields: [clientId], references: [id])
+  mainLawyer     User               @relation("MainLawyerCases", fields: [mainLawyerId], references: [id])
+  collaborators  CaseCollaborator[]
+  documents      Document[]
+  billings       Billing[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status, type, acceptedAt])
+  @@map("cases")
+}
+
+model CaseCollaborator {
+  caseId String
+  userId String
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([caseId, userId])
+  @@map("case_collaborators")
+}
+
+model Document {
+  id         String       @id @default(uuid())
+  title      String
+  fileType   DocumentType
+  fileUrl    String
+  uploadedAt DateTime     @default(now())
+  caseId     String
+  uploaderId String
+  case       Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploader   User         @relation(fields: [uploaderId], references: [id])
+
+  @@index([caseId, fileType, uploadedAt])
+  @@map("documents")
+}
+
+model Billing {
+  id          String        @id @default(uuid())
+  billNo      String        @unique
+  type        BillingType
+  amount      Decimal       @db.Decimal(12, 2)
+  status      BillingStatus @default(pending)
+  caseId      String
+  clientId    String
+  invoiceInfo Json?
+  case        Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  client      Client        @relation(fields: [clientId], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status, type, createdAt])
+  @@map("billings")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorId      String?
+  action       String
+  targetEntity String
+  targetId     String?
+  changes      Json
+  ip           String?
+  createdAt    DateTime @default(now())
+  actor        User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([targetEntity, createdAt])
+  @@map("audit_logs")
+}
+
